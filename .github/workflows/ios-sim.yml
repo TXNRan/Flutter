@@ -1,0 +1,38 @@
+name: Build iOS Simulator
+
+on:
+  push:
+    branches: [ main ]        # or branch you use
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-simulator:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+
+      - name: Install Dart & Pod deps
+        run: |
+          flutter pub get
+          cd ios
+          pod install
+          cd ..
+
+      - name: Build for iOS Simulator
+        run: |
+          flutter clean
+          flutter build ios --simulator
+
+      - name: Upload Runner.app
+        uses: actions/upload-artifact@v3
+        with:
+          name: Runner.app
+          path: build/ios/iphonesimulator/Runner.app
