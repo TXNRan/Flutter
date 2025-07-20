@@ -9,13 +9,15 @@ workflows:
         - push
         - pull_request
     scripts:
-      # 1)Patch Podfile to exclude arm64 for simulator builds & install CocoaPods
+      # 1) Patch Podfile to exclude arm64 for simulator builds & install CocoaPods
       - name: Patch Podfile & Install pods
         script: |
           cd ios
-          # Tambahkan block exclusion jika belum ada
-          if ! grep -q "EXCLUDED_ARCHS\\[sdk=iphonesimulator\\*\\]" Podfile; then
+
+          # Tambahkan post_install block hanya jika belum ada
+          if ! grep -q "post_install do" Podfile; then
             cat << 'EOF' >> Podfile
+
           post_install do |installer|
             installer.pods_project.build_configurations.each do |config|
               config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
@@ -23,28 +25,33 @@ workflows:
           end
           EOF
           fi
+
+          # Tambahkan deklarasi workspace jika belum ada
+          if ! grep -q "^workspace" Podfile; then
+            echo "workspace 'Runner.xcworkspace'" >> Podfile
+          fi
+
           pod install --repo-update
           cd ..
 
-      # 2)Fetch dependencies & build untuk Simulator (x86_64 slice)
+      # 2) Fetch dependencies & build untuk Simulator (x86_64 slice)
       - name: Build for Simulator
         script: |
           flutter clean
           flutter pub get
           flutter build ios --simulator --no-codesign
 
-      # 3)Zip .app dari Release-iphonesimulator
+      # 3) Zip .app dari Release-iphonesimulator
       - name: Zip .app
         script: |
-          BUILD_DIR="build/ios/iphonesimulator/Release-iphonesimulator"
-          APP_NAME="Runner.app"
+          BUILD_DIR="build/ios/iphonesimulator/Runner.app"
           ZIP_PATH="$PWD/RunnerSimulator.zip"
-          if [ ! -d "$BUILD_DIR/$APP_NAME" ]; then
-            echo "Error: $BUILD_DIR/$APP_NAME not found"
+          if [ ! -d "$BUILD_DIR" ]; then
+            echo "Error: $BUILD_DIR not found"
             exit 1
           fi
-          cd "$BUILD_DIR"
-          zip -qr "$ZIP_PATH" "$APP_NAME"
+          cd "$(dirname "$BUILD_DIR")"
+          zip -qr "$ZIP_PATH" "$(basename "$BUILD_DIR")"
 
     artifacts:
       - RunnerSimulator.zip
