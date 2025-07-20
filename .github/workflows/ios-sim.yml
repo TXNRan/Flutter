@@ -14,15 +14,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Flutter
+      - name: Set up Flutter 3.22.1
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.22.1'
-          architecture: x64
 
-      - name: Install Dart & Pod deps
+      - name: Install dependencies
         run: |
+          flutter --version
           flutter pub get
+
+      - name: Install CocoaPods dependencies
+        run: |
           cd ios
           pod install
           cd ..
@@ -31,9 +34,6 @@ jobs:
         run: |
           flutter clean
           flutter build ios --simulator
-
-      - name: Check Runner.app exists
-        run: ls -R build/ios/iphonesimulator
 
       - name: Upload Runner.app
         uses: actions/upload-artifact@v4
