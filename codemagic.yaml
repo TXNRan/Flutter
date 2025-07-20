@@ -9,12 +9,12 @@ workflows:
         - push
         - pull_request
     scripts:
-      # 1) Patch Podfile to exclude arm64 for simulator builds & install CocoaPods
-      - name: Patch Podfile & Install pods
+      # 1) Patch Podfile & Install CocoaPods
+      - name: Patch Podfile & Install Pods
         script: |
           cd ios
 
-          # Tambahkan post_install block hanya jika belum ada
+          # Tambahkan post_install block jika belum ada
           if ! grep -q "post_install do" Podfile; then
             cat << 'EOF' >> Podfile
 
@@ -34,15 +34,19 @@ workflows:
           pod install --repo-update
           cd ..
 
-      # 2) Fetch dependencies & build untuk Simulator (x86_64 slice)
-      - name: Build for Simulator
+      # 2) Fetch dependencies
+      - name: Get Dependencies
         script: |
           flutter clean
           flutter pub get
+
+      # 3) Build for iOS Simulator (x86_64)
+      - name: Build for iOS Simulator
+        script: |
           flutter build ios --simulator --no-codesign
 
-      # 3) Zip .app dari Release-iphonesimulator
-      - name: Zip .app
+      # 4) Zip the .app
+      - name: Zip .app for Simulator
         script: |
           BUILD_DIR="build/ios/iphonesimulator/Runner.app"
           ZIP_PATH="$PWD/RunnerSimulator.zip"
