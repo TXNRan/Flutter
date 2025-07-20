@@ -1,0 +1,24 @@
+ workflows:
+  ios-sim:
+    name: Build iOS Simulator
+    environment:
+      flutter: stable
+      xcode: latest
+    triggering:
+      events:
+        - push
+        - pull_request
+    scripts:
+      - name: Install pods
+        script: |
+          cd ios && pod install && cd ..
+      - name: Build for Simulator
+        script: |
+          flutter clean
+          flutter build ios --simulator
+      - name: Zip .app
+        script: |
+          cd build/ios/iphonesimulator
+          zip -r RunnerSimulator.zip Runner.app
+    artifacts:
+      - build/ios/iphonesimulator/RunnerSimulator.zip
