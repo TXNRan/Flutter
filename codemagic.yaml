@@ -9,33 +9,42 @@ workflows:
         - push
         - pull_request
     scripts:
-      # 1)Install CocoaPods
-      - name: Install pods
+      # 1)Patch Podfile to exclude arm64 for simulator builds & install CocoaPods
+      - name: Patch Podfile & Install pods
         script: |
           cd ios
+          # Tambahkan block exclusion jika belum ada
+          if ! grep -q "EXCLUDED_ARCHS\\[sdk=iphonesimulator\\*\\]" Podfile; then
+            cat << 'EOF' >> Podfile
+          post_install do |installer|
+            installer.pods_project.build_configurations.each do |config|
+              config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
+            end
+          end
+          EOF
+          fi
           pod install --repo-update
           cd ..
 
-      # 2)Fetch dependencies & build untuk Simulator
+      # 2)Fetch dependencies & build untuk Simulator (x86_64 slice)
       - name: Build for Simulator
         script: |
           flutter clean
           flutter pub get
           flutter build ios --simulator --no-codesign
 
-      # 3)Zip .app
+      # 3)Zip .app dari Release-iphonesimulator
       - name: Zip .app
         script: |
-          # output .app biasanya di build/ios/iphonesimulator/Runner.app
+          BUILD_DIR="build/ios/iphonesimulator/Release-iphonesimulator"
+          APP_NAME="Runner.app"
           ZIP_PATH="$PWD/RunnerSimulator.zip"
-          APP_PATH="$PWD/build/ios/iphonesimulator/Runner.app"
-          if [ ! -d "$APP_PATH" ]; then
-            echo "Error: $APP_PATH not found"
+          if [ ! -d "$BUILD_DIR/$APP_NAME" ]; then
+            echo "Error: $BUILD_DIR/$APP_NAME not found"
             exit 1
           fi
-          zip -qr "$ZIP_PATH" "$APP_PATH"
-          echo "Zipped to $ZIP_PATH"
+          cd "$BUILD_DIR"
+          zip -qr "$ZIP_PATH" "$APP_NAME"
 
     artifacts:
-      # pastikan path ini sesuai lokasi ZIP_PATH di atas
       - RunnerSimulator.zip
